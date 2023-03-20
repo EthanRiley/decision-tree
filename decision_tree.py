@@ -4,7 +4,7 @@ from collections import Counter
 import math
 
 
-def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0):
+def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0, class_col='class'):
     '''
     Input:
         train: training dataset, pandas dataframe
@@ -26,6 +26,22 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
 
     This function builds a decision tree using the training dataset. The tree is built recursively
     '''
+    # If
+    if train is None or len(train) == 0:
+        return None
+    elif len(train) < min_instances:
+        return (train[0], None, None, train)
+    else:
+        # Find the best split
+        best_col, best_v, best_meas = rachlins_best_split(train, class_col, criterion)
+        if type(best_v) == str or type(best_v) == bool:
+            left_vals = train[train[best_col] == best_v]
+            right_vals = train[train[best_col] != best_v]
+        else:
+            left_vals = train[train[best_col] <= best_v]
+            right_vals = train[train[best_col] > best_v]
+        majority = Counter(train[class_col]).most_common(1)[0][0]
+        return (best_col, best_v, train, majority, best_meas, dtree(left_vals, criterion, max_depth, min_instances, target_impurity), dtree(right_vals, criterion, max_depth, min_instances, target_impurity))
 
 
 def tree(L, min_vals=1):
@@ -63,8 +79,6 @@ def wavg(cnt1, cnt2, measure):
     tot1, tot2 = total(cnt1), total(cnt2)
     return (tot1*measure(cnt1) + tot2*measure(cnt2))/(tot1+tot2)
 
-
-
 def rachlins_best_split(df, class_col, measure):
     best_col = 0
     best_v = ''
@@ -94,3 +108,16 @@ def evaluate_split(data, class_col, split_col, feature_val, measure):
     data1, data2 = data[data[split_col] == feature_val], data[data[split_col] != feature_val]
     cnt1, cnt2 = Counter(data1[class_col]), Counter(data2[class_col])
     return wavg(cnt1, cnt2, measure)
+
+def depth(T):
+    '''return max depth of a tree'''
+    if T == None or len(T) == None:
+        return -1
+    else:
+        return 1 + max(depth(left(T)), depth(right(T)))
+    
+def left(T):
+    return T[1] if T is not None else None
+
+def right(T):
+    return T[2] if T is not None else None
