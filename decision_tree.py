@@ -4,6 +4,29 @@ from collections import Counter
 import math
 
 
+def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0):
+    '''
+    Input:
+        train: training dataset, pandas dataframe
+        criterion: Attribute selection used to find optimal split, 'gini' or 'entropy'
+        max_depth: maximum depth of the tree
+        min_instances: minimum number of heterogenous instances required to split
+        target_impurity: target impurity for the tree
+
+    Output:
+        model: A decision tree model represented as a tuple of tuples. This tuple contains
+            * feature / column name (splitting criterion)
+            * feature value threshold (splitting criteria)
+            * examples_in_split
+            * majority class
+            * impurity_score
+            * depth
+            * left_subtree (leading to examples where feature value <= test threshold)
+            * right_subtree (leading to examples where feature value > test threshold
+
+    This function builds a decision tree using the training dataset. The tree is built recursively
+    '''
+
 
 def tree(L, min_vals=1):
     '''
@@ -39,3 +62,35 @@ def entropy(cnt):
 def wavg(cnt1, cnt2, measure):
     tot1, tot2 = total(cnt1), total(cnt2)
     return (tot1*measure(cnt1) + tot2*measure(cnt2))/(tot1+tot2)
+
+
+
+def rachlins_best_split(df, class_col, measure):
+    best_col = 0
+    best_v = ''
+    best_meas = float("inf")
+    
+    for split_col in df.columns:
+        if split_col != class_col:
+            v, meas = rachlins_best_split_for_column(df, class_col, split_col, measure)
+            if meas < best_meas:
+                best_v = v
+                best_meas = meas
+                best_col = split_col
+                
+    return best_col, best_v, best_meas
+
+def rachlins_best_split_for_column(data, class_col, split_col, measure):
+    best_v = ''
+    best_meas = float('inf')
+    for v in set(data[split_col]):
+        meas = evaluate_split(data, class_col, split_col, v, measure)
+        if meas < best_meas:
+            best_meas = meas
+            best_v = v
+    return best_v, best_meas
+
+def evaluate_split(data, class_col, split_col, feature_val, measure):
+    data1, data2 = data[data[split_col] == feature_val], data[data[split_col] != feature_val]
+    cnt1, cnt2 = Counter(data1[class_col]), Counter(data2[class_col])
+    return wavg(cnt1, cnt2, measure)
