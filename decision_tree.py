@@ -29,18 +29,45 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
     # If
     if train is None or len(train) == 0:
         return None
-    elif Counter(train[class_col]).most_common(1)[0][1] < min_instances:
-        return (train[0], None, None, train)
+    elif Counter(train[class_col]).most_common(1)[0][1] < min_instances or Counter(train[class_col]).most_common(1)[0][1] == len(train):
+        best_col, best_v, best_meas = rachlins_best_split(train, class_col, criterion)
+        majority = Counter(train[class_col]).most_common(1)[0][0]
+        return (best_col, 
+                best_v, 
+                train, 
+                majority, 
+                best_meas, 
+                None, 
+                None)
     else:
         # Find the best split
         best_col, best_v, best_meas = rachlins_best_split(train, class_col, criterion)
         if type(best_v) == str or type(best_v) == bool:
             left_vals = train[train[best_col] == best_v]
             right_vals = train[train[best_col] != best_v]
+            if len(left_vals) == len(train) or len(right_vals) == len(train):
+                return (best_col, 
+                        best_v, 
+                        train, 
+                        majority, 
+                        best_meas, 
+                        None, 
+                        None)
         else:
             left_vals = train[train[best_col] <= best_v]
             right_vals = train[train[best_col] > best_v]
+            if len(left_vals) == len(train) or len(right_vals) == len(train):
+                majority = Counter(train[class_col]).most_common(1)[0][0]
+                return (best_col, 
+                        best_v, 
+                        train, 
+                        majority, 
+                        best_meas, 
+                        None, 
+                        None)
         majority = Counter(train[class_col]).most_common(1)[0][0]
+        majority_count = Counter(train[class_col]).most_common(1)[0][1]
+        train_len = len(train)
         return (best_col, 
                 best_v, 
                 train, 
