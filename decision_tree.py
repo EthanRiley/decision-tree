@@ -29,7 +29,7 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
     # If
     if train is None or len(train) == 0:
         return None
-    elif len(train) < min_instances:
+    elif Counter(train[class_col]).most_common(1)[0][1] < min_instances:
         return (train[0], None, None, train)
     else:
         # Find the best split
@@ -41,7 +41,13 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
             left_vals = train[train[best_col] <= best_v]
             right_vals = train[train[best_col] > best_v]
         majority = Counter(train[class_col]).most_common(1)[0][0]
-        return (best_col, best_v, train, majority, best_meas, dtree(left_vals, criterion, max_depth, min_instances, target_impurity), dtree(right_vals, criterion, max_depth, min_instances, target_impurity))
+        return (best_col, 
+                best_v, 
+                train, 
+                majority, 
+                best_meas, 
+                dtree(left_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col), 
+                dtree(right_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col))
 
 
 def tree(L, min_vals=1):
