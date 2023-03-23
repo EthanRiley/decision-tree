@@ -33,8 +33,7 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
         best_col, best_v, best_meas = rachlins_best_split(train, class_col, criterion)
         majority = Counter(train[class_col]).most_common(1)[0][0]
         return (best_col, 
-                best_v, 
-                train, 
+                best_v,  
                 majority, 
                 best_meas, 
                 None, 
@@ -47,8 +46,7 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
             right_vals = train[train[best_col] != best_v]
             if len(left_vals) == len(train) or len(right_vals) == len(train):
                 return (best_col, 
-                        best_v, 
-                        train, 
+                        best_v,  
                         majority, 
                         best_meas, 
                         None, 
@@ -60,7 +58,6 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
                 majority = Counter(train[class_col]).most_common(1)[0][0]
                 return (best_col, 
                         best_v, 
-                        train, 
                         majority, 
                         best_meas, 
                         None, 
@@ -69,12 +66,48 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
         majority_count = Counter(train[class_col]).most_common(1)[0][1]
         train_len = len(train)
         return (best_col, 
-                best_v, 
-                train, 
+                best_v,  
                 majority, 
                 best_meas, 
                 dtree(left_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col), 
                 dtree(right_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col))
+    
+def predict(model, data):
+    '''
+    Inputs:
+        model: A decision tree model represented as a tuple of tuples. This tuple contains
+            * feature / column name (splitting criterion)
+            * feature value threshold (splitting criteria)
+            * examples_in_split
+            * majority class
+            * impurity_score
+            * depth
+            * left_subtree (leading to examples where feature value <= test threshold)
+            * right_subtree (leading to examples where feature value > test threshold
+        data: A pandas dataframe containing the test data
+    Output:
+        predictions: A list of predictions for each row in the test dataset
+    '''
+    predictions = []
+    for i in range(len(data)):
+        predictions.append(predict_row(model, data.iloc[i]))
+
+    return predictions
+
+def predict_row(model, row):
+    if model[4] is None and model[5] is None:
+        return model[2]
+    else:
+        if type(model[1]) == str or type(model[1]) == bool:
+            if row[model[0]] == model[1]:
+                return predict_row(model[4], row)
+            else:
+                return predict_row(model[5], row)
+        else:
+            if row[model[0]] <= model[1]:
+                return predict_row(model[4], row)
+            else:
+                return predict_row(model[5], row)
 
 
 def tree(L, min_vals=1):
