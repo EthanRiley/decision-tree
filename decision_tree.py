@@ -4,7 +4,7 @@ from collections import Counter
 import math
 
 
-def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0, class_col='class'):
+def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0, class_col='class', current_depth=0):
     '''
     Input:
         train: training dataset, pandas dataframe
@@ -29,13 +29,14 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
     # If
     if train is None or len(train) == 0:
         return None
-    elif Counter(train[class_col]).most_common(1)[0][1] < min_instances or Counter(train[class_col]).most_common(1)[0][1] == len(train):
+    elif Counter(train[class_col]).most_common(1)[0][1] < min_instances or Counter(train[class_col]).most_common(1)[0][1] == len(train) or (max_depth is not None and current_depth >= max_depth):
         best_col, best_v, best_meas = rachlins_best_split(train, class_col, criterion)
         majority = Counter(train[class_col]).most_common(1)[0][0]
         return (best_col, 
                 best_v,  
                 majority, 
-                best_meas, 
+                best_meas,
+                current_depth,
                 None, 
                 None)
     else:
@@ -49,6 +50,7 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
                         best_v,  
                         majority, 
                         best_meas, 
+                        current_depth,
                         None, 
                         None)
         else:
@@ -60,17 +62,18 @@ def dtree(train, criterion, max_depth=None, min_instances=2, target_impurity=0.0
                         best_v, 
                         majority, 
                         best_meas, 
+                        current_depth,
                         None, 
                         None)
         majority = Counter(train[class_col]).most_common(1)[0][0]
-        majority_count = Counter(train[class_col]).most_common(1)[0][1]
-        train_len = len(train)
+
         return (best_col, 
                 best_v,  
                 majority, 
-                best_meas, 
-                dtree(left_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col), 
-                dtree(right_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col))
+                best_meas,
+                current_depth, 
+                dtree(left_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col, current_depth=current_depth+1), 
+                dtree(right_vals, criterion, max_depth, min_instances, target_impurity, class_col=class_col, current_depth=current_depth+1))
     
 def predict(model, data):
     '''
@@ -95,19 +98,19 @@ def predict(model, data):
     return predictions
 
 def predict_row(model, row):
-    if model[4] is None and model[5] is None:
+    if model[5] is None and model[6] is None:
         return model[2]
     else:
         if type(model[1]) == str or type(model[1]) == bool:
             if row[model[0]] == model[1]:
-                return predict_row(model[4], row)
-            else:
                 return predict_row(model[5], row)
+            else:
+                return predict_row(model[6], row)
         else:
             if row[model[0]] <= model[1]:
-                return predict_row(model[4], row)
-            else:
                 return predict_row(model[5], row)
+            else:
+                return predict_row(model[6], row)
 
 
 def tree(L, min_vals=1):
@@ -187,3 +190,10 @@ def left(T):
 
 def right(T):
     return T[2] if T is not None else None
+
+def depth(T):
+    '''return max depth of a tree'''
+    if T == None or len(T) == None:
+        return -1
+    else:
+        return 1 + max(depth(T[4]), depth(T[5]))
